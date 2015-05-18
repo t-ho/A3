@@ -1,0 +1,17 @@
+Compiling test-resultparam-4-err.pl0
+     1 procedure one ( x: int, x: int, result x: int, result x: int ) = // duplicate parameters
+******                         ^  Error: repeated parameter name x
+******                                        ^  Error: repeated parameter name x
+******                                                       ^  Error: repeated parameter name x
+Parsing complete
+    29   call two(b,v,b,w);   // invalid types of all parameters 
+******            ^  Error: can't coerce boolean to int
+******              ^  Error: can't coerce int to boolean
+******                ^  Error: can't coerce int to boolean
+******                  ^  Error: can't coerce boolean to int
+    32   call two(v,b);       // too few parameters
+******        ^  Error: wrong number of parameters
+    33   call two(v,b,w,b,b,v) // too many parameters
+******        ^  Error: wrong number of parameters
+Static semantic analysis complete
+9 errors detected.
