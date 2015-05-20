@@ -12,6 +12,7 @@ import syms.SymbolTable;
 import syms.Type;
 import syms.Type.IncompatibleTypes;
 import tree.DeclNode.DeclListNode;
+import tree.ExpNode.ParamNode;
 import tree.StatementNode.*;
 
 /** class StaticSemantics - Performs the static semantic checks on
@@ -131,6 +132,38 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         } else {
             errors.error( "Procedure identifier required", node.getPosition() );
             return;
+        }
+        List<SymEntry.ParamEntry> formalParamList = procType.getParams();
+        List<ExpNode.ParamNode> actualParamList = node.getActualParamList();
+        if(formalParamList.size() == actualParamList.size()) {
+        	for(int i = 0; i < formalParamList.size(); i++) {
+        		SymEntry.ParamEntry formalEntry = formalParamList.get(i);
+        		ExpNode.ParamNode actualNode = actualParamList.get(i);
+        		Type.ReferenceType refFormalType = formalEntry.getType();
+        		Type baseFormalType = refFormalType.getBaseType();
+        		ExpNode actualExp = actualNode.getExp().transform(this);
+        		if(formalEntry.isResultParam()) { // is result parameter
+        			Type refActualType = actualExp.getType();
+        			if(refActualType instanceof Type.ReferenceType) {
+        				/* Validate that the formal result parameter is assignment
+        				 * compatible with the actual parameter. */
+        				Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
+        				if( ! baseActualType.equals(baseFormalType)) {
+        					errors.error("can't coerce " + baseFormalType.getName() + " to " + 
+        							baseActualType.getName(), actualExp.getPosition());
+        				}
+        			} else {
+        				if(refActualType != Type.ERROR_TYPE) {
+        					errors.error("variable (i.e., L-Value) expected", actualExp.getPosition());
+        				}
+        			}
+        		} else { // formalEntry is formal value parameter
+        			actualNode.setExp(baseFormalType.coerceExp(actualExp));
+        		}
+        	}
+        } else {// number of actual parameters is not the same as that of formal parameters
+        	errors.error("wrong number of parameters", node.getPosition());
+        	return;
         }
     }
 
@@ -308,5 +341,9 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         // Nothing to do.
         return node;
     }
+	@Override
+	public ExpNode visitParamNode(ParamNode node) {
+		return node;
+	}
 
 }

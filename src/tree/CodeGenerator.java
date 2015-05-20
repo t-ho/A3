@@ -8,6 +8,7 @@ import source.Errors;
 import syms.Scope;
 import syms.SymEntry;
 import syms.Type;
+import tree.ExpNode.ParamNode;
 import tree.StatementNode.*;
 
 /** class CodeGenerator implements code generation using the
@@ -354,6 +355,12 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         // Widening doesn't require anything extra
         return node.getExp().genCode( this );
     }
+
+	@Override
+	public Code visitParamNode(ParamNode node) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 
 }

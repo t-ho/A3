@@ -351,13 +351,11 @@ public abstract class ExpNode {
     	}
 		@Override
 		public ExpNode transform(ExpTransform<ExpNode> visitor) {
-			// TODO Auto-generated method stub
-			return null;
+			return visitor.visitParamNode( this );
 		}
 		@Override
 		public Code genCode(ExpTransform<Code> visitor) {
-			// TODO Auto-generated method stub
-			return null;
+			return visitor.visitParamNode( this );
 		}
 		public ExpNode getExp() {
 			return exp;
