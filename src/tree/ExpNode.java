@@ -341,4 +341,32 @@ public abstract class ExpNode {
             return "WidenSubrange(" + exp + ":" + getType() + ")";
         }
     }
+    
+    /** Tree node representing a actual parameter node */
+    public static class ParamNode extends ExpNode {
+    	private ExpNode exp;
+    	public ParamNode(Position pos, ExpNode exp) {
+    		super(pos);
+    		this.setExp(exp);
+    	}
+		@Override
+		public ExpNode transform(ExpTransform<ExpNode> visitor) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		@Override
+		public Code genCode(ExpTransform<Code> visitor) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		public ExpNode getExp() {
+			return exp;
+		}
+		public void setExp(ExpNode exp) {
+			this.exp = exp;
+		}
+		public String toString() {
+			return "ParamNode(" + exp + ":" + getType() + ")";
+		}
+    }
 }
