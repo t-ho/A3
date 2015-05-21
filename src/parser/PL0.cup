@@ -432,12 +432,16 @@ ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id LPAREN FormalParamList:pl RPAREN
 FormalParamList ::= FormalParam:p
     	{:
     		List<SymEntry.ParamEntry> paramList = new ArrayList<SymEntry.ParamEntry>();
-    		paramList.add(p);
+    		if(p != null) {
+    			paramList.add(p);
+    		}
     		RESULT = paramList;
     	:}
     |  FormalParamList:pl COMMA FormalParam:p
     	{:
-    		pl.add(p);
+    		if(p != null) {
+    			pl.add(p);
+    		}
     		RESULT = pl;
     	:}
     ;
@@ -453,6 +457,10 @@ FormalParam ::= IDENTIFIER:id COLON TypeIdentifier:type
 			Position pos = new Position(idleft);
 			Type.ReferenceType refType = new Type.ReferenceType(type);
 			RESULT = new SymEntry.ParamEntry(id, pos, null, refType, true);
+		:}
+	| error:e
+		{:
+			RESULT = null;	
 		:}
 	;
 
@@ -526,11 +534,13 @@ CallStatement ::= KW_CALL IDENTIFIER:id LPAREN RPAREN
 ActualParamList ::= ActualParam:ap
 		{:
 			List<ExpNode.ParamNode> actualParamList = new ArrayList<ExpNode.ParamNode>();
+			System.out.println(ap.getType() + "==" + Type.ERROR_TYPE);
 			actualParamList.add(ap);
 			RESULT = actualParamList;
 		:}
 	|  ActualParamList:apl COMMA ActualParam:ap
 		{:
+			System.out.println(ap.getType() + "==" + Type.ERROR_TYPE);
 			apl.add(ap);
 			RESULT = apl;	
 		:}

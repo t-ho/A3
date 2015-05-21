@@ -135,6 +135,7 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         }
         List<SymEntry.ParamEntry> formalParamList = procType.getParams();
         List<ExpNode.ParamNode> actualParamList = node.getActualParamList();
+        System.out.println("<<<In visitCallNode>>>" + formalParamList.size() + " == " + actualParamList.size() );
         if(formalParamList.size() == actualParamList.size()) {
         	for(int i = 0; i < formalParamList.size(); i++) {
         		SymEntry.ParamEntry formalEntry = formalParamList.get(i);
