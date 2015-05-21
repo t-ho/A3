@@ -133,6 +133,10 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
             errors.error( "Procedure identifier required", node.getPosition() );
             return;
         }
+        // Check procType is a valid procedure type or not
+        if(! isValidProcedure(procType)){ 
+        	return;
+        }
         List<SymEntry.ParamEntry> formalParamList = procType.getParams();
         List<ExpNode.ParamNode> actualParamList = node.getActualParamList();
         if(formalParamList.size() == actualParamList.size()) {
@@ -165,6 +169,20 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         	errors.error("wrong number of parameters", node.getPosition());
         	return;
         }
+    }
+    
+    /** Check whether a procedure is valid(No error when declared) or not
+     * @return true if valid, otherwise false */
+    private boolean isValidProcedure(Type.ProcedureType procType) {
+    	
+    	List<SymEntry.ParamEntry> paramEntryList = procType.getParams();
+    	for(SymEntry.ParamEntry paramEntry : paramEntryList) {
+    		Type baseType = paramEntry.getType().getBaseType();
+    		if(baseType == Type.ERROR_TYPE) {
+    			return false;
+    		}
+    	}
+    	return true;
     }
 
     public void visitStatementListNode( StatementNode.ListNode node ) {

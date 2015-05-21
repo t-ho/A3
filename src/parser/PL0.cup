@@ -399,6 +399,8 @@ ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id LPAREN FormalParamList:pl RPAREN
         		if(se != null) {
         			paramList.add(paramEntry);
         		} else {
+        			paramEntry.setType(new Type.ReferenceType(Type.ERROR_TYPE));
+        			paramList.add(paramEntry);
         			errors.error("repeated parameter name " + paramEntry.getIdent(), paramEntry.getPosition());
         		}
         	}
