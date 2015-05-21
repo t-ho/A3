@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import source.Errors;
+import source.Position;
 import syms.Predefined;
 import syms.SymEntry;
 import syms.SymbolTable;
@@ -147,22 +148,25 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         		Type baseFormalType = refFormalType.getBaseType();
         		ExpNode actualExp = actualNode.getExp().transform(this);
         		if(formalEntry.isResultParam()) { // is result parameter
+        			actualNode.setResultParam(true);
         			Type refActualType = actualExp.getType();
         			if(refActualType instanceof Type.ReferenceType) {
         				/* Validate that the formal result parameter is assignment
         				 * compatible with the actual parameter. */
         				Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
-        				if( ! baseActualType.equals(baseFormalType)) {
-        					errors.error("can't coerce " + baseFormalType.getName() + " to " + 
-        							baseActualType.getName(), actualExp.getPosition());
-        				}
-        			} else {
+        				baseActualType.coerceExp(new ExpNode.VariableNode(actualNode.getPosition(), formalEntry));
+        			} else { // refActualType is not a type of Type.ReferenceType
         				if(refActualType != Type.ERROR_TYPE) {
-        					errors.error("variable (i.e., L-Value) expected", actualExp.getPosition());
+        					errors.error("actual result parameter must be an LValue", actualExp.getPosition());
         				}
         			}
         		} else { // formalEntry is formal value parameter
+        			/* Validate that the actual expression is assignment
+        			 * compatible with the formal value parameter. 
+        			 * This may require that the actual expression is coerced
+        			 * to the dereferenced type of the formal value parameter. */
         			actualNode.setExp(baseFormalType.coerceExp(actualExp));
+        			actualNode.setResultParam(false);
         		}
         	}
         } else {// number of actual parameters is not the same as that of formal parameters
@@ -174,7 +178,6 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
     /** Check whether a procedure is valid(No error when declared) or not
      * @return true if valid, otherwise false */
     private boolean isValidProcedure(Type.ProcedureType procType) {
-    	
     	List<SymEntry.ParamEntry> paramEntryList = procType.getParams();
     	for(SymEntry.ParamEntry paramEntry : paramEntryList) {
     		Type baseType = paramEntry.getType().getBaseType();

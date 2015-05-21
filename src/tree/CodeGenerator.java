@@ -147,11 +147,35 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
     public Code visitCallNode( StatementNode.CallNode node ) {
         SymEntry.ProcedureEntry proc = node.getEntry();
         Code code = new Code();
+        List<ExpNode.ParamNode> paramList = node.getActualParamList();
+        /* Allocate space on the stack for the local copies of the result 
+         * parameters in reverse order */
+        for(int i = paramList.size() - 1; i >= 0; i--) {
+        	ParamNode param = paramList.get(i);
+        	if(param.isResultParam()) {
+        		code.genAllocStack(param.getType().getSpace());
+        	}
+        }
+        /* For each value parameter(in reverse order), load the value of 
+         * the corresponding actual parameter expression onto the stack */
+        for(int i = paramList.size() - 1; i >= 0; i--) {
+        	ParamNode param = paramList.get(i);
+        	if(! param.isResultParam()) { // is value parameter
+        		code.append(param.genCode(this));
+        	}
+        }
         /* Generate the call instruction. The second parameter is the
          * procedure's symbol table entry. The actual address is resolved 
          * at load time.
          */
         code.genCall( staticLevel - proc.getLevel(), proc );
+        code.genDeallocStack(proc.getLocalScope().getValueParameterSpace());
+/*        for(int i = paramList.size() - 1; i >= 0; i--) {
+        	ParamNode param = paramList.get(i);
+        	if(param.isResultParam()) {
+        		code.append(param.genCode(this));
+        	}
+        }*/
         return code;
     }
     /** Generate code for a statement list */
@@ -359,7 +383,8 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	@Override
 	public Code visitParamNode(ParamNode node) {
 		// TODO Auto-generated method stub
-		return null;
+		
+		return node.getExp().genCode(this);
 	}
 
 

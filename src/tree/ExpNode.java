@@ -345,6 +345,8 @@ public abstract class ExpNode {
     /** Tree node representing a actual parameter node */
     public static class ParamNode extends ExpNode {
     	private ExpNode exp;
+        /** result is false for a value parameter and true for a result parameter */
+        private boolean result;
     	public ParamNode(Position pos, ExpNode exp) {
     		super(pos);
     		this.setExp(exp);
@@ -365,6 +367,12 @@ public abstract class ExpNode {
 		}
 		public String toString() {
 			return "ParamNode(" + exp + ":" + getType() + ")";
+		}
+		public boolean isResultParam() {
+			return result;
+		}
+		public void setResultParam(boolean result) {
+			this.result = result;
 		}
     }
 }

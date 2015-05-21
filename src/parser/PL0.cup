@@ -392,9 +392,14 @@ ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id LPAREN FormalParamList:pl RPAREN
              * the procedure. */
             Scope scope = symtab.newScope( procEntry );
         	for(SymEntry.ParamEntry paramEntry : pl) {
+        		if(paramEntry.isResultParam()) {
+        			int offset = scope.allocResultParameterSpace(paramEntry.getType().getSpace());
+        			paramEntry.setOffset(offset);
+        		} else {
+        			int offset = scope.allocValueParameterSpace(paramEntry.getType().getSpace());
+        			paramEntry.setOffset(offset);
+        		}
         		paramEntry.setScope(scope);
-        		int offset = scope.allocValueParameterSpace(paramEntry.getType().getSpace());
-        		paramEntry.setOffset(offset);
         		SymEntry se = scope.addEntry(paramEntry);
         		if(se != null) {
         			paramList.add(paramEntry);
