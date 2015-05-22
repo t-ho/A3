@@ -176,8 +176,8 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         for(int i = 0; i < paramList.size(); i++) {
         	ParamNode param = paramList.get(i);
         	if(param.isResultParam()) {
-        		code.append(param.getExp().genCode(this));
-        		code.append(genStore((Type.ReferenceType)param.getExp().getType()));
+        		code.append(param.genCode(this));
+        		code.append(genStore((Type.ReferenceType)param.getType()));
         	}
         }
         return code;

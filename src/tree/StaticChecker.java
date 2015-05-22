@@ -156,6 +156,7 @@ public class StaticChecker implements DeclVisitor, StatementVisitor,
         				Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
         				baseActualType.coerceExp(new ExpNode.VariableNode(actualNode.getPosition(), formalEntry));
         				actualNode.setExp(actualExp);
+        				actualNode.setType((Type.ReferenceType) refActualType);
         			} else { // refActualType is not a type of Type.ReferenceType
         				if(refActualType != Type.ERROR_TYPE) {
         					errors.error("actual result parameter must be an LValue", actualExp.getPosition());
