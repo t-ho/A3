@@ -7,6 +7,7 @@ import machine.StackMachine;
 import source.Errors;
 import syms.Scope;
 import syms.SymEntry;
+import syms.SymEntry.ParamEntry;
 import syms.Type;
 import tree.ExpNode.ParamNode;
 import tree.StatementNode.*;
@@ -150,10 +151,10 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         List<ExpNode.ParamNode> paramList = node.getActualParamList();
         /* Allocate space on the stack for the local copies of the result 
          * parameters in reverse order */
-        for(int i = paramList.size() - 1; i >= 0; i--) {
-        	ParamNode param = paramList.get(i);
-        	if(param.isResultParam()) {
-        		code.genAllocStack(param.getType().getSpace());
+        for(int i = proc.getType().getParams().size() - 1; i >= 0; i--) {
+        	ParamEntry paramEntry = proc.getType().getParams().get(i);
+        	if(paramEntry.isResultParam()) {
+        		code.genAllocStack(paramEntry.getType().getSpace());
         	}
         }
         /* For each value parameter(in reverse order), load the value of 
@@ -170,12 +171,15 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
          */
         code.genCall( staticLevel - proc.getLevel(), proc );
         code.genDeallocStack(proc.getLocalScope().getValueParameterSpace());
-/*        for(int i = paramList.size() - 1; i >= 0; i--) {
+        /* Assign the values of the local result parameters to the corresponding
+         * actual parameter LValues */
+        for(int i = 0; i < paramList.size(); i++) {
         	ParamNode param = paramList.get(i);
         	if(param.isResultParam()) {
-        		code.append(param.genCode(this));
+        		code.append(param.getExp().genCode(this));
+        		code.append(genStore((Type.ReferenceType)param.getExp().getType()));
         	}
-        }*/
+        }
         return code;
     }
     /** Generate code for a statement list */
