@@ -397,14 +397,14 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 		// TODO Auto-generated method stub
 		Code code = new Code();
 		code.append(node.getExp().genCode(this));
-		Type refActualType = node.getType();
+		/*Type refActualType = node.getType();
 		if(refActualType instanceof Type.ReferenceType) {
         	Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
 				SubrangeType subrangeType = baseActualType.getSubrangeType();
         	if(subrangeType != null) {
         		code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
         	}
-		}
+		}*/
 		return code;
 	}
 
