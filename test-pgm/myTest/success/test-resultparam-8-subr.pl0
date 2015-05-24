@@ -1,0 +1,17 @@
+type 
+  S = [1..10];
+procedure p( r: int, x: int ) =
+  begin
+    x := x + 3;
+    write r;
+    write x
+  end;
+var
+  s: S;
+  y: int;
+begin
+  y:= 1;
+  s := 5;
+  call p( y, s );  // value of y outside subrange bounds for n
+  write s; write y
+end

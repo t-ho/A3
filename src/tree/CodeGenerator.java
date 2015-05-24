@@ -150,14 +150,8 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         SymEntry.ProcedureEntry proc = node.getEntry();
         Code code = new Code();
         List<ExpNode.ParamNode> paramList = node.getActualParamList();
-        /* Allocate space on the stack for the local copies of the result 
-         * parameters in reverse order */
-        for(int i = proc.getType().getParams().size() - 1; i >= 0; i--) {
-        	ParamEntry paramEntry = proc.getType().getParams().get(i);
-        	if(paramEntry.isResultParam()) {
-        		code.genAllocStack(paramEntry.getType().getSpace());
-        	}
-        }
+        /* Allocate space on the stack for the local copies of the result parameters */
+        code.genAllocStack(proc.getLocalScope().getResultParameterSpace());
         /* For each value parameter(in reverse order), load the value of 
          * the corresponding actual parameter expression onto the stack */
         for(int i = paramList.size() - 1; i >= 0; i--) {
@@ -179,8 +173,8 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         	if(param.isResultParam()) {
         		Type baseActualType = ((Type.ReferenceType)param.getType()).getBaseType();
         		SubrangeType subrangeType = baseActualType.getSubrangeType();
-        		/* If actual parameter is type of SubrangeType, 
-        		 * generate boundsCheck code */
+        		 /* If actual parameter is type of SubrangeType, 
+        		  * generate boundsCheck code */ 
         		if(subrangeType != null) {
         			code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
         		}
@@ -397,14 +391,6 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 		// TODO Auto-generated method stub
 		Code code = new Code();
 		code.append(node.getExp().genCode(this));
-		/*Type refActualType = node.getType();
-		if(refActualType instanceof Type.ReferenceType) {
-        	Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
-				SubrangeType subrangeType = baseActualType.getSubrangeType();
-        	if(subrangeType != null) {
-        		code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
-        	}
-		}*/
 		return code;
 	}
 
