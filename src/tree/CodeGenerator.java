@@ -9,6 +9,7 @@ import syms.Scope;
 import syms.SymEntry;
 import syms.SymEntry.ParamEntry;
 import syms.Type;
+import syms.Type.SubrangeType;
 import tree.ExpNode.ParamNode;
 import tree.StatementNode.*;
 
@@ -176,6 +177,13 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         for(int i = 0; i < paramList.size(); i++) {
         	ParamNode param = paramList.get(i);
         	if(param.isResultParam()) {
+        		Type baseActualType = ((Type.ReferenceType)param.getType()).getBaseType();
+        		SubrangeType subrangeType = baseActualType.getSubrangeType();
+        		/* If actual parameter is type of SubrangeType, 
+        		 * generate boundsCheck code */
+        		if(subrangeType != null) {
+        			code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
+        		}
         		code.append(param.genCode(this));
         		code.append(genStore((Type.ReferenceType)param.getType()));
         	}
@@ -387,8 +395,17 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
 	@Override
 	public Code visitParamNode(ParamNode node) {
 		// TODO Auto-generated method stub
-		
-		return node.getExp().genCode(this);
+		Code code = new Code();
+		code.append(node.getExp().genCode(this));
+		Type refActualType = node.getType();
+		if(refActualType instanceof Type.ReferenceType) {
+        	Type baseActualType = ((Type.ReferenceType)refActualType).getBaseType();
+				SubrangeType subrangeType = baseActualType.getSubrangeType();
+        	if(subrangeType != null) {
+        		code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
+        	}
+		}
+		return code;
 	}
 
 
