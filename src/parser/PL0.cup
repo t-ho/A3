@@ -149,11 +149,12 @@ non terminal Type             Type,
 non terminal                  VarDeclSeq, 
                               VarDecl;
 non terminal DeclNode.ProcedureNode ProcedureDef;
-non terminal Scope            ProcedureHead;
-non terminal 
-                              FormalParamList;
-non terminal 
-                              ActualParamList;
+non terminal SymEntry.ProcedureEntry ProcedureHead;
+non terminal List<SymEntry.ParamEntry> FormalParamList;
+non terminal SymEntry.ParamEntry FormalParam;
+non terminal StatementNode.CallNode CallStatement; 
+non terminal List<ExpNode.ParamNode> ActualParamList;
+non terminal ExpNode.ParamNode ActualParam;
 non terminal StatementNode.ListNode StatementList;
 non terminal StatementNode    Statement,
                               CompoundStatement;
@@ -365,16 +366,15 @@ VarDecl ::= IDENTIFIER:id COLON TypeIdentifier:type SEMICOLON
     |  error
     ;
     
-ProcedureDef ::= ProcedureHead:scope EQUALS Block:b
+ProcedureDef ::= ProcedureHead:procedure EQUALS Block:b
         {:
-            b.setBlockLocals( scope );
+            b.setBlockLocals( procedure.getLocalScope() );
             symtab.leaveScope();
-            RESULT = new DeclNode.ProcedureNode( scope.getProcEntry(), b );
+            RESULT = new DeclNode.ProcedureNode( procedure, b );
         :}
     ;
 
-ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id
-            LPAREN FormalParamList:pl RPAREN 
+ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id LPAREN FormalParamList:pl RPAREN 
         {: 
             SymEntry.ProcedureEntry procEntry;
             /* Add an entry for the procedure to the current scope */
@@ -387,25 +387,87 @@ ProcedureHead ::= KW_PROCEDURE IDENTIFIER:id
                 procEntry = new SymEntry.ProcedureEntry( id, 
                     pos, symtab.getCurrentScope() );
             }
+            List<SymEntry.ParamEntry> paramList = new ArrayList<SymEntry.ParamEntry>();
             /* Create a new scope for the symbols local to
              * the procedure. */
-            RESULT = symtab.newScope( procEntry );
-            procEntry.setLocalScope( RESULT );
+            Scope scope = symtab.newScope( procEntry );
+        	for(SymEntry.ParamEntry paramEntry : pl) {
+        		if(paramEntry.isResultParam()) {
+        			int offset = scope.allocResultParameterSpace(paramEntry.getType().getSpace());
+        			paramEntry.setOffset(offset);
+        		} else {
+        			int offset = scope.allocValueParameterSpace(paramEntry.getType().getSpace());
+        			paramEntry.setOffset(offset);
+        		}
+        		paramEntry.setScope(scope);
+        		SymEntry se = scope.addEntry(paramEntry);
+        		if(se != null) {
+        			paramList.add(paramEntry);
+        		} else {
+        			paramEntry.setType(new Type.ReferenceType(Type.ERROR_TYPE));
+        			paramList.add(paramEntry);
+        			errors.error("repeated parameter name " + paramEntry.getIdent(), paramEntry.getPosition());
+        		}
+        	}
+        	procEntry.getType().setParams(paramList);
+        	procEntry.setLocalScope(scope);
+        	RESULT = procEntry;
         :}
-    |  KW_PROCEDURE IDENTIFIER:id error
-        {: 
-            SymEntry.ProcedureEntry procEntry = 
-                new SymEntry.ProcedureEntry( id, new Position( idleft ),
-                            symtab.getCurrentScope() );
-            RESULT = symtab.newScope( procEntry );
-            procEntry.setLocalScope( RESULT );
-        :}
-    ;
+	|  KW_PROCEDURE IDENTIFIER:id LPAREN RPAREN
+		{:
+            SymEntry.ProcedureEntry procEntry;
+            /* Add an entry for the procedure to the current scope */
+            Position pos = new Position(idleft);
+            procEntry = symtab.getCurrentScope().addProcedure( id, pos );
+            if( procEntry == null ) {
+                errors.error( id + " already declared", pos );
+                /* Create a dummy symbol table entry.
+                 * Note that this entry isn't in symtab. */
+                procEntry = new SymEntry.ProcedureEntry( id, 
+                    pos, symtab.getCurrentScope() );
+            }
+            List<SymEntry.ParamEntry> paramList = new ArrayList<SymEntry.ParamEntry>();
+            Scope scope = symtab.newScope(procEntry);
+            procEntry.getType().setParams(paramList);
+            procEntry.setLocalScope(scope);
+            RESULT = procEntry;
+		:}
+	;
 
 
 /* To allow for the addition of procedure parameters. */
-FormalParamList ::= /* empty */
+FormalParamList ::= FormalParam:p
+    	{:
+    		List<SymEntry.ParamEntry> paramList = new ArrayList<SymEntry.ParamEntry>();
+            paramList.add(p);
+    		RESULT = paramList;
+    	:}
+    |  FormalParamList:pl COMMA FormalParam:p
+    	{:
+    		pl.add(p);
+    		RESULT = pl;
+    	:}
     ;
+    
+FormalParam ::= IDENTIFIER:id COLON TypeIdentifier:type
+		{:
+			Position pos = new Position(idleft);
+			Type.ReferenceType refType = new Type.ReferenceType(type);
+			RESULT = new SymEntry.ParamEntry(id, pos, null, refType, false);
+		:}
+	| KW_RESULT IDENTIFIER:id COLON TypeIdentifier:type
+		{:
+			Position pos = new Position(idleft);
+			Type.ReferenceType refType = new Type.ReferenceType(type);
+			RESULT = new SymEntry.ParamEntry(id, pos, null, refType, true);
+		:}
+	| error:e
+		{:
+			Position pos = new Position(eleft);
+			Type.ReferenceType refType = new Type.ReferenceType(Type.ERROR_TYPE);
+			RESULT = new SymEntry.ParamEntry("ErrorEntry", pos, null, refType, false);	
+		:}
+	;
 
 CompoundStatement ::= KW_BEGIN StatementList:sl KW_END
         {:
@@ -451,19 +513,48 @@ Statement ::= KW_WHILE Condition:c KW_DO Statement:s
           RESULT = new StatementNode.AssignmentNode( new Position(lvalleft),
                                             lval, rval );
        :} 
-    |  KW_CALL IDENTIFIER:id 
-            LPAREN ActualParamList:pl RPAREN
-        {: 
-            RESULT = new StatementNode.CallNode( new Position(idleft), id );
-        :}
+    |  CallStatement:cs
+    	{:
+    		RESULT = cs;
+    	:}
     |  error:p 
         {: 
             RESULT = new StatementNode.ErrorNode( new Position(pleft) );
         :}
     ;
 
-ActualParamList ::= /* empty */
+CallStatement ::= KW_CALL IDENTIFIER:id LPAREN RPAREN
+        {:
+        	Position pos = new Position(idleft);
+        	List<ExpNode.ParamNode> actualParamList = new ArrayList<ExpNode.ParamNode>();
+            RESULT = new StatementNode.CallNode( pos, id, actualParamList );
+        :}
+	|  KW_CALL IDENTIFIER:id LPAREN ActualParamList:apl RPAREN
+		{:
+			Position pos = new Position(idleft);
+			RESULT = new StatementNode.CallNode( pos, id, apl); 
+		:}
+	;
+
+ActualParamList ::= ActualParam:ap
+		{:
+			List<ExpNode.ParamNode> actualParamList = new ArrayList<ExpNode.ParamNode>();
+			actualParamList.add(ap);
+			RESULT = actualParamList;
+		:}
+	|  ActualParamList:apl COMMA ActualParam:ap
+		{:
+			apl.add(ap);
+			RESULT = apl;	
+		:}
     ;
+    
+ActualParam ::= Condition:c
+		{:
+			Position pos = new Position(cleft);
+			RESULT = new ExpNode.ParamNode(pos, c);	
+		:}
+	;
 
 LValue ::= IDENTIFIER:id
         {:
@@ -592,3 +683,4 @@ UnaryOperator ::= MINUS:op
         :}
     ;
 
+      

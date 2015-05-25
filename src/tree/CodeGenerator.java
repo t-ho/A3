@@ -7,7 +7,10 @@ import machine.StackMachine;
 import source.Errors;
 import syms.Scope;
 import syms.SymEntry;
+import syms.SymEntry.ParamEntry;
 import syms.Type;
+import syms.Type.SubrangeType;
+import tree.ExpNode.ParamNode;
 import tree.StatementNode.*;
 
 /** class CodeGenerator implements code generation using the
@@ -146,11 +149,39 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
     public Code visitCallNode( StatementNode.CallNode node ) {
         SymEntry.ProcedureEntry proc = node.getEntry();
         Code code = new Code();
+        List<ExpNode.ParamNode> paramList = node.getActualParamList();
+        /* Allocate space on the stack for the local copies of the result parameters */
+        code.genAllocStack(proc.getLocalScope().getResultParameterSpace());
+        /* For each value parameter(in reverse order), load the value of 
+         * the corresponding actual parameter expression onto the stack */
+        for(int i = paramList.size() - 1; i >= 0; i--) {
+        	ParamNode param = paramList.get(i);
+        	if(! param.isResultParam()) { // is value parameter
+        		code.append(param.genCode(this));
+        	}
+        }
         /* Generate the call instruction. The second parameter is the
          * procedure's symbol table entry. The actual address is resolved 
          * at load time.
          */
         code.genCall( staticLevel - proc.getLevel(), proc );
+        code.genDeallocStack(proc.getLocalScope().getValueParameterSpace());
+        /* Assign the values of the local result parameters to the corresponding
+         * actual parameter LValues */
+        for(int i = 0; i < paramList.size(); i++) {
+        	ParamNode param = paramList.get(i);
+        	if(param.isResultParam()) {
+        		Type baseActualType = ((Type.ReferenceType)param.getType()).getBaseType();
+        		SubrangeType subrangeType = baseActualType.getSubrangeType();
+        		 /* If actual parameter is type of SubrangeType, 
+        		  * generate boundsCheck code */ 
+        		if(subrangeType != null) {
+        			code.genBoundsCheck(subrangeType.getLower(), subrangeType.getUpper());
+        		}
+        		code.append(param.genCode(this));
+        		code.append(genStore((Type.ReferenceType)param.getType()));
+        	}
+        }
         return code;
     }
     /** Generate code for a statement list */
@@ -354,6 +385,14 @@ public class CodeGenerator implements DeclVisitor, StatementTransform<Code>,
         // Widening doesn't require anything extra
         return node.getExp().genCode( this );
     }
+
+	@Override
+	public Code visitParamNode(ParamNode node) {
+		// TODO Auto-generated method stub
+		Code code = new Code();
+		code.append(node.getExp().genCode(this));
+		return code;
+	}
 
 
 }

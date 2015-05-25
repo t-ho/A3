@@ -228,10 +228,12 @@ public abstract class StatementNode {
     public static class CallNode extends StatementNode {
         private String id;
         private SymEntry.ProcedureEntry procEntry;
+        private List<ExpNode.ParamNode> actualParamList;
 
-        public CallNode( Position pos, String id ) {
+        public CallNode( Position pos, String id, List<ExpNode.ParamNode> actualParamList ) {
             super( pos );
             this.id = id;
+            this.setActualParamList(actualParamList);
         }
         @Override
         public void accept( StatementVisitor visitor ) {
@@ -255,6 +257,12 @@ public abstract class StatementNode {
             String s = "CALL " + procEntry.getIdent() + "(";
             return s + ")";
         }
+		public List<ExpNode.ParamNode> getActualParamList() {
+			return actualParamList;
+		}
+		public void setActualParamList(List<ExpNode.ParamNode> actualParamList) {
+			this.actualParamList = actualParamList;
+		}
     }
     /** Tree node representing a statement list. */
     public static class ListNode extends StatementNode {
